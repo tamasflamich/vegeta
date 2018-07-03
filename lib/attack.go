@@ -20,6 +20,7 @@ type Attacker struct {
 	stopch    chan struct{}
 	workers   uint64
 	redirects int
+	skipbody  bool
 }
 
 const (
@@ -185,6 +186,13 @@ func H2C(enabled bool) func(*Attacker) {
 	}
 }
 
+// SkipBody returns a functional option which enables to disable body logging
+func SkipBody(enabled bool) func(*Attacker) {
+	return func(a *Attacker) {
+		a.skipbody = enabled
+	}
+}
+
 // Attack reads its Targets from the passed Targeter and attacks them at
 // the rate specified for the given duration. When the duration is zero the attack
 // runs until Stop is called. Results are sent to the returned channel as soon
@@ -270,11 +278,17 @@ func (a *Attacker) hit(tr Targeter, name string, seq uint64) *Result {
 	if err != nil {
 		return &res
 	}
-	defer r.Body.Close()
 
-	if res.Body, err = ioutil.ReadAll(r.Body); err != nil {
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		return &res
 	}
+
+	if a.skipbody == false {
+		res.Body = body
+	}
+
 	res.Latency = time.Since(res.Timestamp)
 	res.BytesIn = uint64(len(res.Body))
 

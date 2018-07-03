@@ -43,6 +43,7 @@ func attackCmd() command {
 	fs.Var(&opts.headers, "header", "Request header")
 	fs.Var(&opts.laddr, "laddr", "Local IP address")
 	fs.BoolVar(&opts.keepalive, "keepalive", true, "Use persistent connections")
+	fs.BoolVar(&opts.skipbody, "skip-body", false, "Do not log the body of responses")
 
 	return command{fs, func(args []string) error {
 		fs.Parse(args)
@@ -77,6 +78,7 @@ type attackOpts struct {
 	headers     headers
 	laddr       localAddr
 	keepalive   bool
+	skipbody    bool
 }
 
 // attack validates the attack arguments, sets up the
@@ -138,6 +140,7 @@ func attack(opts *attackOpts) (err error) {
 		vegeta.Connections(opts.connections),
 		vegeta.HTTP2(opts.http2),
 		vegeta.H2C(opts.h2c),
+		vegeta.SkipBody(opts.skipbody),
 	)
 
 	res := atk.Attack(tr, opts.rate, opts.duration, opts.name)
